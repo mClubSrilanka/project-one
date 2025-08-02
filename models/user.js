@@ -1,58 +1,49 @@
 import mongoose from "mongoose"
 
-
-const modelSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
+  firstName : {
+         type : String,
+         required : true
+     },
+     lastName : {
+         type : String,
+         required : true
+     },
+     email : {
+         type : String,
+         required : true,
+         unique : true
+     },
+     password : {
+         type : String,
+         required : true
+     },
+     phone : {
+         type : String,
+         default : "NOT GIVEN"
+     },
+     isBlocked: {
+         type : Boolean,
+         default : false
+     },
+     role : {
+         type : String,
+         default : "user"
+     },
+     isEmailVerified : {
+         type : Boolean,
+         default : false
+     },
+     image : {
+         type : String,
+         default : "https://png.pngtree.com/png-clipart/20191120/original/pngtree-outline-user-icon-png-image_5045523.jpg"
+     }
+ })
+ 
+ const User = mongoose.model("users",userSchema)
+ 
+export default User;
+ 
+ 
     
-        firstName : {
-            type :String,
-            required : true
-        },
-        lastName : {
-            type :String,
-            required : true,
-        },
-        age : number,
-        email :{
-            type : string,
-            required : true,
-            unique : true
-        },
-        address :{
-            type :string,
-            required : true
-        }, 
-                  
-        phone : {
-            type : string,
-            defalt : "Not Given "
-        },
-
-        password :{
-            type : string,
-            required : true,
-            
-        },
-        isBlocked : {
-            type :Boolean,
-            defalt : false
-        },
-        role:{
-            type : string,
-            defalt : "user"
-        },
-        
-        isEmailVerified :{ 
-            type: boolean,
-            default : false
-        },
-        image : {
-            type : string,
-            default :https //www.flaticon.com/free-icon/user_456212}, 
-
-    },
-}
-)
-
-const User = mongoose.model("users", userShema)
-
-export default User; 
+       
