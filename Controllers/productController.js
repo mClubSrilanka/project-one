@@ -45,7 +45,7 @@ export async function deleteProduct(req,res){
     try {
         const productId =req.params.productId
 
-        await Product.deleteone({
+        await Product.deleteOne({
             productId : productId
         });
 
