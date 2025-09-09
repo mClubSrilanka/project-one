@@ -2,7 +2,7 @@ import express from "express";
 
 const router = express.Router();
 
-// This could later come from a DB instead of a hardcoded array
+
 const categories = [
   "Grains",
   "Kitchen Ingrediants",

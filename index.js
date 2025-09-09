@@ -7,7 +7,7 @@ import productRouter from "./routers/productRouter.js"
 import dotenv from "dotenv"
 import cors from "cors" 
 import orderRouter from "./routers/orderRouter.js"
-import categoryRouter from "./routes/categoryRoutes.js" // ✅ path is correct
+import categoryRouter from "./routers/categoryRouter.js" // ✅ path is correct
 
 dotenv.config()
 
