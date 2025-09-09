@@ -7,6 +7,8 @@ import productRouter from "./routers/productRouter.js"
 import dotenv from "dotenv"
 import cors from "cors" 
 import orderRouter from "./routers/orderRouter.js"
+import categoryRouter from "./routes/categoryRoutes.js"; // ✅ adjust path if needed
+
 
 dotenv.config()
 
@@ -59,6 +61,7 @@ mongoose.connect(connectionString)
 app.use("/api/users", userRouter)
 app.use("/api/products",productRouter)
 app.use("/api/orders",orderRouter)
+app.use("/api/categories", categoryRouter);
 
 app.listen(5000, 
    ()=>{
