@@ -135,10 +135,12 @@ export async function searchProducts(req,res){
 export async function getProductsByCategory(req, res) {
 	try {
 		const category = decodeURIComponent(req.params.category);
+
 		const products = await Product.find({
-			category: category,
+			category: { $regex: `^${category}$`, $options: "i" }, // 🔍 case-insensitive match
 			isAvailable: true,
 		});
+
 		res.json(products);
 	} catch (error) {
 		console.error("Error fetching products by category:", error);
