@@ -130,3 +130,18 @@ export async function searchProducts(req,res){
 
 	//
 }
+
+// ✅ NEWLY ADDED FUNCTION
+export async function getProductsByCategory(req, res) {
+	try {
+		const category = decodeURIComponent(req.params.category);
+		const products = await Product.find({
+			category: category,
+			isAvailable: true,
+		});
+		res.json(products);
+	} catch (error) {
+		console.error("Error fetching products by category:", error);
+		res.status(500).json({ message: "Failed to fetch products by category" });
+	}
+}
