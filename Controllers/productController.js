@@ -40,13 +40,20 @@ export async function getProducts(req, res) {
 export async function getCategories(req, res) {
 	try {
 		// Products collection එකෙන් unique category names ගන්න
-		const categories = await Product.distinct("category");
+		let categories = await Product.distinct("category");
+
+		// null / empty values remove කරලා, sort කරන්න
+		categories = categories
+			.filter((c) => c && c.trim() !== "")
+			.sort((a, b) => a.localeCompare(b));
+
 		res.json(categories);
 	} catch (error) {
 		console.error("Error fetching categories:", error);
 		res.status(500).json({ message: "Failed to fetch categories" });
 	}
 }
+
 // ✅ Delete Product
 export async function deleteProduct(req, res) {
 	if (!isAdmin(req)) {
