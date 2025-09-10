@@ -9,6 +9,7 @@ import {
 	searchProducts,
 	updateProduct,
 	getProductsByCategory,
+	getCategories,
 } from "../Controllers/productController.js";
 
 const productRouter = express.Router();
@@ -16,17 +17,10 @@ const productRouter = express.Router();
 // ✅ Get products by category (keep this above /:productId)
 productRouter.get("/category/:categoryName", getProductsByCategory);
 
-// ✅ NEW: Get all unique categories
-productRouter.get("/categories", async (req, res) => {
-	try {
-		const categories = await Product.distinct("category"); // import Product if needed
-		res.json(categories);
-	} catch (error) {
-		console.error("Error fetching categories:", error);
-		res.status(500).json({ message: "Failed to fetch categories" });
-	}
-});
+// ✅ Get all unique categories (use controller function)
+productRouter.get("/categories", getCategories);
 
+// ✅ CRUD routes
 productRouter.post("/", createProduct);
 productRouter.get("/", getProducts);
 productRouter.get("/search/:query", searchProducts);
