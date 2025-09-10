@@ -130,14 +130,14 @@ export async function searchProducts(req,res){
 
 	//
 }
-
 // ✅ NEWLY ADDED FUNCTION
 export async function getProductsByCategory(req, res) {
 	try {
-		const category = decodeURIComponent(req.params.category);
+		// Match the param name with router (categoryName)
+		const categoryName = decodeURIComponent(req.params.categoryName);
 
 		const products = await Product.find({
-			category: { $regex: `^${category}$`, $options: "i" }, // 🔍 case-insensitive match
+			category: { $regex: `^${categoryName}$`, $options: "i" }, // 🔍 case-insensitive
 			isAvailable: true,
 		});
 
@@ -147,3 +147,4 @@ export async function getProductsByCategory(req, res) {
 		res.status(500).json({ message: "Failed to fetch products by category" });
 	}
 }
+
