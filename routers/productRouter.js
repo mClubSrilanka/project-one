@@ -1,26 +1,19 @@
 import express from "express";
-import Product from "../models/product.js";
-
 import {
-	createProduct,
-	deleteProduct,
-	getProductInfo,
-	getProducts,
-	searchProducts,
-	updateProduct,
-	getProductsByCategory,
-	getCategories,
+  createProduct, deleteProduct, getProductInfo, getProducts, searchProducts, updateProduct,
+  getProductsByCategory, getCategories, getProductsBySubcategory, getSubcategories,
+  getFeaturedProducts, getTopReviewedProducts
 } from "../Controllers/productController.js";
 
 const productRouter = express.Router();
 
-// ✅ Get products by category (keep this above /:productId)
+productRouter.get("/category/:categoryName/:subcategoryName", getProductsBySubcategory);
 productRouter.get("/category/:categoryName", getProductsByCategory);
-
-// ✅ Get all unique categories (use controller function)
 productRouter.get("/categories", getCategories);
+productRouter.get("/categories/:categoryName", getSubcategories);
+productRouter.get("/featured", getFeaturedProducts);
+productRouter.get("/top-reviewed", getTopReviewedProducts);
 
-// ✅ CRUD routes
 productRouter.post("/", createProduct);
 productRouter.get("/", getProducts);
 productRouter.get("/search/:query", searchProducts);
