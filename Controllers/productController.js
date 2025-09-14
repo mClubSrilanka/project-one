@@ -7,12 +7,17 @@ export async function createProduct(req, res) {
 		return res.status(403).json({ message: "Access denied, Admins only" });
 	}
 
-	const product = new Product(req.body);
+	// ✅ NEW: Set default subcategory for existing products
+	const productData = {
+		...req.body,
+		subcategory: req.body.subcategory || "Default"
+	};
+
+	const product = new Product(productData);
 
 	try {
 		const response = await product.save();
 
-		// Optional: log category (will be automatically in distinct)
 		console.log("Product created with category:", response.category);
 
 		res.json({
@@ -41,12 +46,6 @@ export async function getCategories(req, res) {
 	try {
 		// Products collection එකෙන් unique category names ගන්න
 		let categories = await Product.distinct("category");
-
-		// null / empty values remove කරලා, sort කරන්න
-		categories = categories
-			.filter((c) => c && c.trim() !== "")
-			.sort((a, b) => a.localeCompare(b));
-
 		res.json(categories);
 	} catch (error) {
 		console.error("Error fetching categories:", error);
@@ -54,38 +53,95 @@ export async function getCategories(req, res) {
 	}
 }
 
-// ✅ Delete Product
-export async function deleteProduct(req, res) {
-	if (!isAdmin(req)) {
-		return res.status(403).json({ message: "Access denied. Admins only." });
-	}
-
+// ✅ Get products by category
+export async function getProductsByCategory(req, res) {
 	try {
-		const productId = req.params.productId;
-		await Product.deleteOne({ productId });
-		res.json({ message: "Product deleted successfully" });
+		const categoryName = req.params.categoryName;
+		const products = await Product.find({ category: categoryName, isAvailable: true });
+		res.json(products);
 	} catch (error) {
-		console.error("Error deleting product:", error);
-		res.status(500).json({ message: "Failed to delete product" });
+		console.error("Error fetching products by category:", error);
+		res.status(500).json({ message: "Failed to fetch products by category" });
 	}
 }
 
-// ✅ Update Product
-export async function updateProduct(req, res) {
-	if (!isAdmin(req)) {
-		return res.status(403).json({ message: "Access denied. Admins only." });
-	}
+// ✅ NEW: Get products by subcategory
+export async function getProductsBySubcategory(req, res) {
+    try {
+        const { categoryName, subcategoryName } = req.params;
+        const products = await Product.find({
+            category: categoryName,
+            subcategory: subcategoryName,
+            isAvailable: true
+        });
+        res.json(products);
+    } catch (error) {
+        console.error("Error fetching products by subcategory:", error);
+        res.status(500).json({ message: "Failed to fetch products by subcategory" });
+    }
+}
 
-	const data = req.body;
-	const productId = req.params.productId;
-	data.productId = productId;
+// ✅ NEW: Get unique subcategories for a given category
+export async function getSubcategories(req, res) {
+    try {
+        const categoryName = req.params.categoryName;
+        let subcategories = await Product.distinct("subcategory", {
+            category: categoryName,
+        });
+
+        subcategories = subcategories
+            .filter((s) => s && s.trim() !== "")
+            .sort((a, b) => a.localeCompare(b));
+
+        res.json(subcategories);
+    } catch (error) {
+        console.error("Error fetching subcategories:", error);
+        res.status(500).json({ message: "Failed to fetch subcategories" });
+    }
+}
+// ✅ Featured products
+export async function getFeaturedProducts(req, res) {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const products = await Product.find({ featured: true, isAvailable: true })
+      .limit(limit)
+      .sort({ date: -1 });
+    res.json(products);
+  } catch (error) {
+    console.error("Error fetching featured products:", error);
+    res.status(500).json({ message: "Failed to fetch featured products" });
+  }
+}
+
+// ✅ Top reviewed products
+export async function getTopReviewedProducts(req, res) {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const products = await Product.find({ topReviewed: true, isAvailable: true })
+      .limit(limit)
+      .sort({ rating: -1 });
+    res.json(products);
+  } catch (error) {
+    console.error("Error fetching top reviewed products:", error);
+    res.status(500).json({ message: "Failed to fetch top reviewed products" });
+  }
+}
+
+// ✅ Search products
+export async function searchProducts(req, res) {
+	const query = req.params.query;
 
 	try {
-		await Product.updateOne({ productId }, data);
-		res.json({ message: "Product updated successfully" });
-	} catch (error) {
-		console.error("Error updating product:", error);
-		res.status(500).json({ message: "Failed to update product" });
+		const products = await Product.find({
+			$or: [
+				{ name: { $regex: query, $options: "i" } },
+				{ altNames: { $elemMatch: { $regex: query, $options: "i" } } }
+			],
+			isAvailable: true
+		});
+		res.json(products);
+	} catch {
+		res.status(500).json({ message: "Failed to search products" });
 	}
 }
 
@@ -110,37 +166,44 @@ export async function getProductInfo(req, res) {
 	}
 }
 
-// ✅ Search products
-export async function searchProducts(req, res) {
-	const query = req.params.query;
+
+// ✅ Delete a product
+export async function deleteProduct(req, res) {
+	if (!isAdmin(req)) {
+		return res.status(403).json({ message: "Access denied, Admins only" });
+	}
 
 	try {
-		const products = await Product.find({
-			$or: [
-				{ name: { $regex: query, $options: "i" } },
-				{ altNames: { $elemMatch: { $regex: query, $options: "i" } } }
-			],
-			isAvailable: true
-		});
-		res.json(products);
-	} catch {
-		res.status(500).json({ message: "Failed to search products" });
+		const productId = req.params.productId;
+		await Product.deleteOne({ productId });
+
+		res.json({ message: "Product deleted successfully" });
+	} catch (error) {
+		console.error("Error deleting product", error);
+		res.status(500).json({ message: "Failed to delete product" });
 	}
 }
 
-// ✅ Get products by category
-export async function getProductsByCategory(req, res) {
+// ✅ Update a product
+export async function updateProduct(req, res) {
+	if (!isAdmin(req)) {
+		return res.status(403).json({ message: "Access denied, Admins only" });
+	}
+
 	try {
-		const categoryName = decodeURIComponent(req.params.categoryName);
+		const productId = req.params.productId;
+		const updatedProduct = await Product.findOneAndUpdate(
+			{ productId },
+			req.body,
+			{ new: true }
+		);
 
-		const products = await Product.find({
-			category: { $regex: `^${categoryName}$`, $options: "i" },
-			isAvailable: true
-		});
-
-		res.json(products);
+		if (!updatedProduct) {
+			return res.status(404).json({ message: "Product not found" });
+		}
+		res.json({ message: "Product updated successfully", product: updatedProduct });
 	} catch (error) {
-		console.error("Error fetching products by category:", error);
-		res.status(500).json({ message: "Failed to fetch products by category" });
+		console.error("Error updating product", error);
+		res.status(500).json({ message: "Failed to update product" });
 	}
 }

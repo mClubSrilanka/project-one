@@ -9,33 +9,23 @@ import cors from "cors";
 import orderRouter from "./routers/orderRouter.js";
 
 dotenv.config();
-
 const app = express();
 
 app.use(bodyParser.json());
-
 app.use(cors());
 
 app.use((req, res, next) => {
     const value = req.header("Authorization");
-    if (value != null) {
+    if (value) {
         const token = value.replace("Bearer ", "");
         jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-            if (decoded == null) {
-                res.status(403).json({ message: "Unauthorized" });
-            } else {
-                req.user = decoded;
-                next();
-            }
+            if (decoded == null) res.status(403).json({ message: "Unauthorized" });
+            else { req.user = decoded; next(); }
         });
-    } else {
-        next();
-    }
+    } else next();
 });
 
-const connectionString = process.env.MONGO_URI;
-
-mongoose.connect(connectionString)
+mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("✅ Connected to database"))
     .catch((error) => console.error("❌ DB Error:", error.message));
 
@@ -43,6 +33,4 @@ app.use("/api/users", userRouter);
 app.use("/api/products", productRouter);
 app.use("/api/orders", orderRouter);
 
-app.listen(5000, () => {
-    console.log("🚀 Server started on port 5000");
-});
+app.listen(5000, () => console.log("🚀 Server started on port 5000"));
