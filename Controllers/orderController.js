@@ -1,41 +1,51 @@
+
 import Order from "../models/order.js";
 import Product from "../models/product.js";
-import User from "../models/user.js"; // ✅ keep to clear cart
 import { isAdmin } from "./userController.js";
 
-// Create order (unchanged)
+
 export async function createOrder(req, res) {
 	try {
 		if (req.user == null) {
 			res.status(401).json({ message: "Please login to create an order" });
 			return;
 		}
+		// MOL000001
 
 		const latestOrder = await Order.find().sort({ date: -1 }).limit(1);
-		let orderId = "MOL000001";
+
+		let orderId = "MOL000001"; //default order ID
+
 		if (latestOrder.length > 0) {
-			const lastOrderIdInString = latestOrder[0].orderID;
-			const lastOrderIdWithoutPrefix = lastOrderIdInString.replace("MOL", "");
-			const lastOrderIdInInteger = parseInt(lastOrderIdWithoutPrefix);
-			const newOrderIdInInteger = lastOrderIdInInteger + 1;
+			//if old orders exist //"MOL000635"
+			const lastOrderIdInString = latestOrder[0].orderID; //"MOL000635"
+			const lastOrderIdWithoutPrefix = lastOrderIdInString.replace("MOL", ""); //"000635"
+			const lastOrderIdInInteger = parseInt(lastOrderIdWithoutPrefix); //635
+			const newOrderIdInInteger = lastOrderIdInInteger + 1; //636
 			const newOrderIdWithoutPrefix = newOrderIdInInteger
 				.toString()
-				.padStart(6, "0");
-			orderId = "MOL" + newOrderIdWithoutPrefix;
+				.padStart(5, "0"); // "000636"
+			orderId = "MOL" + newOrderIdWithoutPrefix; // "MOL000636"
 		}
-
 		const items = [];
 		let total = 0;
 
 		if (req.body.items !== null && Array.isArray(req.body.items)) {
 			for (let i = 0; i < req.body.items.length; i++) {
 				let item = req.body.items[i];
-				let product = await Product.findOne({ productId: item.productId });
+
+				// console.log(item)
+
+				let product = await Product.findOne({
+					productId: item.productId,
+				});
+
 				if (product == null) {
-					res.status(400).json({ message: "Invalid product ID: " + item.productId });
+					res
+						.status(400)
+						.json({ message: "Invalid product ID: " + item.productId });
 					return;
 				}
-
 				items[i] = {
 					productId: product.productId,
 					name: product.name,
@@ -63,13 +73,8 @@ export async function createOrder(req, res) {
 
 		const result = await order.save();
 
-		// Clear user's cart
-		await User.findByIdAndUpdate(req.user._id, { cart: [] });
-
-		// Return orderId separately
 		res.json({
 			message: "Order created successfully",
-			orderId: result.orderID,
 			result: result,
 		});
 	} catch (error) {
@@ -78,11 +83,9 @@ export async function createOrder(req, res) {
 	}
 }
 
-// Get orders with optional filtering (minimal change)
 export async function getOrders(req, res) {
 	const page = parseInt(req.params.page) || 1;
 	const limit = parseInt(req.params.limit) || 10;
-	const { status, orderID, startDate, endDate } = req.query; // new filters
 
 	if (req.user == null) {
 		res.status(401).json({ message: "Please login to view orders" });
@@ -90,48 +93,44 @@ export async function getOrders(req, res) {
 	}
 
 	try {
-		let query = {};
-		if (req.user.role !== "admin") {
-			query.email = req.user.email;
-		}
-		if (status) query.status = status;
-		if (orderID) query.orderID = orderID;
-		if (startDate || endDate) {
-			query.date = {};
-			if (startDate) query.date.$gte = new Date(startDate);
-			if (endDate) query.date.$lte = new Date(endDate);
-		}
+		if (req.user.role == "admin") {
 
-		const orderCount = await Order.countDocuments(query);
-		const totalPages = Math.ceil(orderCount / limit);
-		const orders = await Order.find(query)
-			.skip((page - 1) * limit)
-			.limit(limit)
-			.sort({ date: -1 });
+			const orderCount = await Order.countDocuments();
 
-		res.json({
-			orders: orders,
-			totalPages: totalPages,
-		});
+			const totalPages = Math.ceil(orderCount / limit);// Calculate total pages by rounding the division of total orders by limit
+
+            const orders = await Order.find().skip((page-1) *limit).limit(limit).sort({ date: -1 });
+
+            res.json({
+				orders: orders,
+				totalPages: totalPages,
+			});
+		}else{
+			const orderCount = await Order.countDocuments({ email: req.user.email });
+			const totalPages = Math.ceil(orderCount / limit);
+            const orders = await Order.find({ email: req.user.email }).skip((page-1) * limit).limit(limit).sort({ date: -1 });
+            res.json({
+				orders: orders,
+				totalPages: totalPages,
+			});
+        }
 	} catch (error) {
 		console.error("Error fetching orders:", error);
 		res.status(500).json({ message: "Failed to fetch orders" });
 	}
 }
-
-// Update order (unchanged)
-export function updateOrder(req, res) {
-	if (isAdmin(req)) {
+export function updateOrder(req,res){
+	if(isAdmin(req)){
 		const orderId = req.params.orderId;
 		const status = req.body.status;
 		const notes = req.body.notes;
 
 		Order.findOneAndUpdate(
 			{ orderID: orderId },
-			{ status: status, notes: notes },
+			{ status: status , notes: notes },
 			{ new: true }
-		)
-			.then((updatedOrder) => {
+		).then(
+			(updatedOrder) => {
 				if (updatedOrder) {
 					res.json({
 						message: "Order updated successfully",
@@ -140,36 +139,16 @@ export function updateOrder(req, res) {
 				} else {
 					res.status(404).json({ message: "Order not found" });
 				}
-			})
-			.catch((error) => {
+			}
+		).catch(
+			(error) => {
 				console.error("Error updating order:", error);
 				res.status(500).json({ message: "Failed to update order" });
-			});
-	} else {
+			}
+		);
+	}else{
 		res.status(403).json({
-			message: "You are not authorized to update orders",
-		});
+			message : "You are not authorized to update orders"
+		})
 	}
-}
-
-// ✅ Repeat order (new minimal endpoint)
-export async function repeatOrder(req, res) {
-	if (!req.user) return res.status(401).json({ message: "Please login" });
-
-	const { orderID } = req.params;
-	const order = await Order.findOne({ orderID });
-	if (!order) return res.status(404).json({ message: "Order not found" });
-
-	const cartItems = order.items.map((item) => ({
-		productId: item.productId,
-		qty: item.qty,
-		name: item.name,
-		image: item.image,
-		price: item.price,
-	}));
-
-	// Update user's cart
-	await User.findByIdAndUpdate(req.user._id, { cart: cartItems });
-
-	res.json({ message: "Order added to cart for repeat", cart: cartItems });
 }
