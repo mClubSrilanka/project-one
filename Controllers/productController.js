@@ -129,5 +129,5 @@ export async function searchProducts(req,res){
 		res.status(500).json({ message: "Failed to search products" });
 	}
 
-	//
 }
+
